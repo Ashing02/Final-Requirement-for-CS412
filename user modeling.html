@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyMate: Agent vs User Control - Proof of Concept</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .notification {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse-animation {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .focus-meter-fill {
+            transition: width 0.5s ease-out, background-color 0.3s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-indigo-900 mb-2">StudyMate: Locus of Control Prototype</h1>
+            <p class="text-gray-600 mb-4">Comparing Agent-Controlled vs User-Controlled Adaptation</p>
+            
+            <!-- Mode Toggle -->
+            <div class="flex items-center gap-4 p-4 bg-indigo-50 rounded-lg">
+                <span class="font-semibold text-gray-700">Control Mode:</span>
+                <button id="modeToggle" class="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                    Switch to User Control (Mode B)
+                </button>
+                <div id="currentMode" class="ml-auto px-4 py-2 bg-white rounded-lg border-2 border-indigo-300">
+                    <span class="font-bold text-indigo-700">Mode A: Agent Control</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Panel: Study Session -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Focus Metrics -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Real-Time Focus Metrics</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-700">Attention Level</span>
+                                <span id="focusValue" class="text-sm font-bold text-indigo-600">85%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                                <div id="focusMeter" class="focus-meter-fill h-full bg-green-500 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div class="p-3 bg-gray-50 rounded">
+                                <p class="text-xs text-gray-600">Tab Switches</p>
+                                <p id="tabSwitches" class="text-2xl font-bold text-gray-800">0</p>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded">
+                                <p class="text-xs text-gray-600">Session Time</p>
+                                <p id="sessionTime" class="text-2xl font-bold text-gray-800">0:00</p>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded">
+                                <p class="text-xs text-gray-600">Questions Done</p>
+                                <p id="questionsAnswered" class="text-2xl font-bold text-gray-800">0/10</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quiz Interface -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">Active Study Session</h2>
+                        <span id="difficultyBadge" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                            Difficulty: Medium
+                        </span>
+                    </div>
+
+                    <div id="quizContent" class="space-y-4">
+                        <div class="p-4 bg-indigo-50 rounded-lg border-l-4 border-indigo-500">
+                            <p class="font-semibold text-gray-800 mb-3" id="questionText">
+                                Question 1: What is the primary purpose of adaptive systems?
+                            </p>
+                            <div class="space-y-2">
+                                <button class="answer-btn w-full p-3 text-left bg-white hover:bg-indigo-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors" data-correct="false">
+                                    A) To increase system complexity
+                                </button>
+                                <button class="answer-btn w-full p-3 text-left bg-white hover:bg-indigo-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors" data-correct="true">
+                                    B) To personalize user experience based on behavior
+                                </button>
+                                <button class="answer-btn w-full p-3 text-left bg-white hover:bg-indigo-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors" data-correct="false">
+                                    C) To collect user data for marketing
+                                </button>
+                                <button class="answer-btn w-full p-3 text-left bg-white hover:bg-indigo-50 rounded-lg border-2 border-gray-200 hover:border-indigo-300 transition-colors" data-correct="false">
+                                    D) To replace human decision-making
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button id="simulateDistraction" class="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-semibold transition-colors">
+                                🔄 Simulate Distraction
+                            </button>
+                            <button id="resetSession" class="flex-1 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors">
+                                ↻ Reset Session
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Area -->
+                <div id="notifications" class="space-y-2 min-h-[100px]"></div>
+            </div>
+
+            <!-- Right Panel: Control Panel -->
+            <div class="space-y-6">
+                <!-- Agent Control Panel -->
+                <div id="agentPanel" class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full pulse-animation"></div>
+                        <h2 class="text-xl font-bold text-gray-800">Agent Status</h2>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                            <p class="text-sm font-semibold text-green-800 mb-1">✓ Active Monitoring</p>
+                            <p class="text-xs text-green-700">System is tracking your focus patterns and will automatically adjust as needed.</p>
+                        </div>
+
+                        <div id="agentActions" class="space-y-2">
+                            <p class="text-sm font-semibold text-gray-700 mb-2">Recent Adaptations:</p>
+                            <div class="text-xs text-gray-600 space-y-1">
+                                <p>• Session initialized at optimal difficulty</p>
+                                <p>• Background music: Lo-Fi mode active</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                        <p class="text-xs text-blue-800">
+                            <strong>Transparency:</strong> The agent makes decisions automatically but you can see why actions were taken. Click on any notification to learn more.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- User Control Panel -->
+                <div id="userPanel" class="bg-white rounded-lg shadow-lg p-6 hidden">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Manual Controls</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Focus Music
+                            </label>
+                            <select id="musicControl" class="w-full p-2 border-2 border-gray-300 rounded-lg">
+                                <option value="off">Off</option>
+                                <option value="lofi" selected>Lo-Fi</option>
+                                <option value="classical">Classical</option>
+                                <option value="ambient">Ambient</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Question Difficulty
+                            </label>
+                            <select id="difficultyControl" class="w-full p-2 border-2 border-gray-300 rounded-lg">
+                                <option value="easy">Easy</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Focus Mode
+                            </label>
+                            <button id="focusModeToggle" class="w-full p-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold transition-colors">
+                                Activate Focus Mode
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                Break Timer
+                            </label>
+                            <button id="breakButton" class="w-full p-3 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold transition-colors">
+                                Schedule Break
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-yellow-50 rounded border border-yellow-200">
+                        <p class="text-xs text-yellow-800">
+                            <strong>Note:</strong> You must manually adjust settings when focus declines. Monitor the metrics above carefully.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Comparison Stats -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-3">Session Comparison</h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">User Decisions:</span>
+                            <span id="userDecisions" class="font-bold text-indigo-600">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Agent Actions:</span>
+                            <span id="agentDecisions" class="font-bold text-green-600">2</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Focus Recovered:</span>
+                            <span id="focusRecoveries" class="font-bold text-blue-600">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Info -->
+        <div class="mt-6 bg-white rounded-lg shadow-lg p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-3">About This Prototype</h3>
+            <p class="text-gray-700 text-sm leading-relaxed">
+                This proof-of-concept demonstrates the core thesis of our position paper: <strong>agent-controlled adaptation produces superior outcomes for students with focus and consistency challenges.</strong> 
+                Toggle between Mode A (Agent Control) and Mode B (User Control) to experience how each approach handles declining attention during a study session. 
+                Notice how Mode A automatically intervenes with minimal disruption, while Mode B requires you to monitor metrics and make manual adjustments.
+            </p>
+            <div class="mt-3 flex gap-4 text-xs text-gray-600">
+                <span>👥 Team: IT Ghurls</span>
+                <span>📚 Course: CS412 - User Modeling</span>
+                <span>🎓 USTP - 2025</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        let state = {
+            mode: 'agent', // 'agent' or 'user'
+            focusLevel: 85,
+            sessionTime: 0,
+            tabSwitches: 0,
+            questionsAnswered: 0,
+            difficulty: 'medium',
+            music: 'lofi',
+            focusModeActive: false,
+            agentActionCount: 2,
+            userDecisionCount: 0,
+            focusRecoveries: 0,
+            intervalId: null
+        };
+
+        // Question bank
+        const questions = {
+            easy: [
+                {
+                    question: "What does 'adaptive' mean in adaptive systems?",
+                    answers: [
+                        { text: "A) Fixed and unchanging", correct: false },
+                        { text: "B) Adjusting to user needs", correct: true },
+                        { text: "C) Complex algorithms", correct: false },
+                        { text: "D) Random changes", correct: false }
+                    ]
+                },
+                {
+                    question: "What is user modeling in educational technology?",
+                    answers: [
+                        { text: "A) Creating 3D models of users", correct: false },
+                        { text: "B) Understanding and representing student characteristics", correct: true },
+                        { text: "C) Making users follow a specific model", correct: false },
+                        { text: "D) Designing user interfaces", correct: false }
+                    ]
+                },
+                {
+                    question: "Which is a benefit of personalized learning systems?",
+                    answers: [
+                        { text: "A) All students learn the same content", correct: false },
+                        { text: "B) Content adapts to individual pace and style", correct: true },
+                        { text: "C) Teachers are no longer needed", correct: false },
+                        { text: "D) Learning becomes more difficult", correct: false }
+                    ]
+                },
+                {
+                    question: "What does 'locus of control' refer to?",
+                    answers: [
+                        { text: "A) Where the computer is located", correct: false },
+                        { text: "B) Who makes decisions in a system", correct: true },
+                        { text: "C) The control panel design", correct: false },
+                        { text: "D) Internet connection speed", correct: false }
+                    ]
+                },
+                {
+                    question: "Why might students need system support during learning?",
+                    answers: [
+                        { text: "A) They are not capable of learning", correct: false },
+                        { text: "B) To maintain focus and manage cognitive load", correct: true },
+                        { text: "C) Because technology is always better", correct: false },
+                        { text: "D) To replace teacher instruction", correct: false }
+                    ]
+                }
+            ],
+            medium: [
+                {
+                    question: "What is the primary purpose of adaptive systems?",
+                    answers: [
+                        { text: "A) To increase system complexity", correct: false },
+                        { text: "B) To personalize user experience based on behavior", correct: true },
+                        { text: "C) To collect user data for marketing", correct: false },
+                        { text: "D) To replace human decision-making", correct: false }
+                    ]
+                },
+                {
+                    question: "Which approach helps reduce cognitive load in learning?",
+                    answers: [
+                        { text: "A) Adding more choices", correct: false },
+                        { text: "B) Automatic scaffolding", correct: true },
+                        { text: "C) Complex interfaces", correct: false },
+                        { text: "D) Manual configuration", correct: false }
+                    ]
+                },
+                {
+                    question: "What is 'decision fatigue' in the context of learning systems?",
+                    answers: [
+                        { text: "A) Getting tired from physical exercise", correct: false },
+                        { text: "B) Mental exhaustion from making too many choices", correct: true },
+                        { text: "C) Feeling sleepy during study sessions", correct: false },
+                        { text: "D) Difficulty understanding content", correct: false }
+                    ]
+                },
+                {
+                    question: "How do intelligent tutoring systems differ from traditional e-learning?",
+                    answers: [
+                        { text: "A) They use more colors and graphics", correct: false },
+                        { text: "B) They adapt content based on student performance", correct: true },
+                        { text: "C) They are more expensive", correct: false },
+                        { text: "D) They only work on mobile devices", correct: false }
+                    ]
+                },
+                {
+                    question: "What role does metacognition play in learning?",
+                    answers: [
+                        { text: "A) It determines internet speed", correct: false },
+                        { text: "B) It involves thinking about one's own thinking and learning", correct: true },
+                        { text: "C) It measures typing speed", correct: false },
+                        { text: "D) It controls system notifications", correct: false }
+                    ]
+                },
+                {
+                    question: "Why might agent-controlled adaptation be beneficial for distracted learners?",
+                    answers: [
+                        { text: "A) It punishes students for losing focus", correct: false },
+                        { text: "B) It provides timely support without requiring conscious effort", correct: true },
+                        { text: "C) It makes learning easier by removing all challenges", correct: false },
+                        { text: "D) It replaces the need for studying", correct: false }
+                    ]
+                }
+            ],
+            hard: [
+                {
+                    question: "According to Vygotsky's Zone of Proximal Development, optimal learning occurs when:",
+                    answers: [
+                        { text: "A) Tasks are far beyond current ability", correct: false },
+                        { text: "B) Learners work completely independently", correct: false },
+                        { text: "C) Support is provided at the edge of current capability", correct: true },
+                        { text: "D) All decisions are made by the system", correct: false }
+                    ]
+                },
+                {
+                    question: "How does cognitive load theory relate to adaptive system design?",
+                    answers: [
+                        { text: "A) It suggests maximizing mental effort at all times", correct: false },
+                        { text: "B) Systems should manage extraneous load while optimizing germane load", correct: true },
+                        { text: "C) Cognitive load is irrelevant to learning outcomes", correct: false },
+                        { text: "D) All load types should be minimized completely", correct: false }
+                    ]
+                },
+                {
+                    question: "What is the paradox of choice in educational technology?",
+                    answers: [
+                        { text: "A) More options always lead to better outcomes", correct: false },
+                        { text: "B) Too many choices can lead to anxiety and poor decisions", correct: true },
+                        { text: "C) Students never want control over their learning", correct: false },
+                        { text: "D) Choice has no impact on learning effectiveness", correct: false }
+                    ]
+                },
+                {
+                    question: "In adaptive systems, what is the 'cold start problem'?",
+                    answers: [
+                        { text: "A) Systems freezing due to technical issues", correct: false },
+                        { text: "B) Difficulty in personalizing without initial user data", correct: true },
+                        { text: "C) Students feeling cold in the classroom", correct: false },
+                        { text: "D) Slow internet connection at startup", correct: false }
+                    ]
+                },
+                {
+                    question: "How does self-determination theory relate to locus of control in learning systems?",
+                    answers: [
+                        { text: "A) It contradicts the need for any system control", correct: false },
+                        { text: "B) Autonomy is important, but competence support may require system intervention", correct: true },
+                        { text: "C) Students should never have any control", correct: false },
+                        { text: "D) Motivation is unaffected by control dynamics", correct: false }
+                    ]
+                },
+                {
+                    question: "What distinguishes implicit from explicit user modeling?",
+                    answers: [
+                        { text: "A) Implicit uses surveys while explicit observes behavior", correct: false },
+                        { text: "B) Implicit infers from behavior while explicit asks users directly", correct: true },
+                        { text: "C) They are the same thing with different names", correct: false },
+                        { text: "D) Implicit is always more accurate than explicit", correct: false }
+                    ]
+                }
+            ]
+        };
+
+        let currentQuestionIndex = 0;
+
+        // DOM Elements
+        const modeToggle = document.getElementById('modeToggle');
+        const currentMode = document.getElementById('currentMode');
+        const agentPanel = document.getElementById('agentPanel');
+        const userPanel = document.getElementById('userPanel');
+        const focusMeter = document.getElementById('focusMeter');
+        const focusValue = document.getElementById('focusValue');
+        const notifications = document.getElementById('notifications');
+        const simulateBtn = document.getElementById('simulateDistraction');
+        const resetBtn = document.getElementById('resetSession');
+
+        // Initialize
+        function init() {
+            startSessionTimer();
+            attachEventListeners();
+            if (state.mode === 'agent') {
+                startAgentMonitoring();
+            }
+        }
+
+        // Event Listeners
+        function attachEventListeners() {
+            modeToggle.addEventListener('click', toggleMode);
+            simulateBtn.addEventListener('click', simulateDistraction);
+            resetBtn.addEventListener('click', resetSession);
+
+            // Answer buttons
+            document.querySelectorAll('.answer-btn').forEach(btn => {
+                btn.addEventListener('click', handleAnswer);
+            });
+
+            // User control listeners
+            document.getElementById('musicControl')?.addEventListener('change', handleUserMusicChange);
+            document.getElementById('difficultyControl')?.addEventListener('change', handleUserDifficultyChange);
+            document.getElementById('focusModeToggle')?.addEventListener('click', handleUserFocusMode);
+            document.getElementById('breakButton')?.addEventListener('click', handleUserBreak);
+        }
+
+        // Mode Toggle
+        function toggleMode() {
+            state.mode = state.mode === 'agent' ? 'user' : 'agent';
+            
+            if (state.mode === 'agent') {
+                modeToggle.textContent = 'Switch to User Control (Mode B)';
+                currentMode.innerHTML = '<span class="font-bold text-indigo-700">Mode A: Agent Control</span>';
+                agentPanel.classList.remove('hidden');
+                userPanel.classList.add('hidden');
+                startAgentMonitoring();
+                showNotification('Agent control activated. System will now adapt automatically.', 'success');
+            } else {
+                modeToggle.textContent = 'Switch to Agent Control (Mode A)';
+                currentMode.innerHTML = '<span class="font-bold text-orange-700">Mode B: User Control</span>';
+                agentPanel.classList.add('hidden');
+                userPanel.classList.remove('hidden');
+                stopAgentMonitoring();
+                showNotification('User control activated. You must now manage adaptations manually.', 'warning');
+            }
+        }
+
+        // Agent Monitoring
+        function startAgentMonitoring() {
+            if (state.intervalId) clearInterval(state.intervalId);
+            
+            state.intervalId = setInterval(() => {
+                // Gradual focus decline
+                if (state.focusLevel > 40) {
+                    state.focusLevel -= Math.random() * 2;
+                    updateFocusDisplay();
+                }
+
+                // Agent interventions based on focus level
+                if (state.mode === 'agent') {
+                    if (state.focusLevel < 60 && state.focusLevel > 55 && state.music !== 'ambient') {
+                        agentAdjustMusic('ambient');
+                    }
+                    
+                    if (state.focusLevel < 50 && state.focusLevel > 45 && state.difficulty !== 'easy') {
+                        agentAdjustDifficulty('easy');
+                    }
+                    
+                    if (state.focusLevel < 40 && !state.focusModeActive) {
+                        agentActivateFocusMode();
+                    }
+                }
+            }, 2000);
+        }
+
+        function stopAgentMonitoring() {
+            if (state.intervalId) {
+                clearInterval(state.intervalId);
+                state.intervalId = null;
+            }
+        }
+
+        // Agent Actions
+        function agentAdjustMusic(newMusic) {
+            state.music = newMusic;
+            state.agentActionCount++;
+            document.getElementById('agentDecisions').textContent = state.agentActionCount;
+            
+            showNotification(
+                `🎵 Agent: Focus declining—switching to ${newMusic} music to maintain concentration`,
+                'agent'
+            );
+            
+            updateAgentLog(`Switched music to ${newMusic} (focus at ${Math.round(state.focusLevel)}%)`);
+        }
+
+        function agentAdjustDifficulty(newDifficulty) {
+            state.difficulty = newDifficulty;
+            state.agentActionCount++;
+            document.getElementById('agentDecisions').textContent = state.agentActionCount;
+            document.getElementById('difficultyBadge').textContent = `Difficulty: ${capitalize(newDifficulty)}`;
+            
+            showNotification(
+                `📊 Agent: Reducing question complexity to ${newDifficulty} level to maintain momentum`,
+                'agent'
+            );
+            
+            updateAgentLog(`Adjusted difficulty to ${newDifficulty} (focus at ${Math.round(state.focusLevel)}%)`);
+            loadNextQuestion();
+        }
+
+        function agentActivateFocusMode() {
+            state.focusModeActive = true;
+            state.agentActionCount++;
+            document.getElementById('agentDecisions').textContent = state.agentActionCount;
+            
+            showNotification(
+                `🎯 Agent: Activating Focus Mode—blocking distractions and adjusting interface for deep work`,
+                'agent'
+            );
+            
+            updateAgentLog('Activated Focus Mode (critical focus threshold reached)');
+            
+            // Visual feedback
+            document.querySelector('.lg\\:col-span-2').classList.add('ring-4', 'ring-indigo-400');
+            setTimeout(() => {
+                document.querySelector('.lg\\:col-span-2').classList.remove('ring-4', 'ring-indigo-400');
+            }, 2000);
+        }
+
+        function updateAgentLog(action) {
+            const log = document.getElementById('agentActions');
+            const entry = document.createElement('p');
+            entry.className = 'text-xs text-gray-600';
+            entry.textContent = `• ${action}`;
+            log.appendChild(entry);
+            
+            // Keep only last 5 entries
+            const entries = log.querySelectorAll('p');
+            if (entries.length > 6) { // 5 + header
+                entries[1].remove();
+            }
+        }
+
+        // User Actions
+        function handleUserMusicChange(e) {
+            state.music = e.target.value;
+            state.userDecisionCount++;
+            document.getElementById('userDecisions').textContent = state.userDecisionCount;
+            showNotification(`You changed music to ${e.target.value}`, 'user');
+        }
+
+        function handleUserDifficultyChange(e) {
+            state.difficulty = e.target.value;
+            state.userDecisionCount++;
+            document.getElementById('userDecisions').textContent = state.userDecisionCount;
+            document.getElementById('difficultyBadge').textContent = `Difficulty: ${capitalize(e.target.value)}`;
+            showNotification(`You changed difficulty to ${e.target.value}`, 'user');
+            loadNextQuestion();
+        }
+
+        function handleUserFocusMode() {
+            state.focusModeActive = !state.focusModeActive;
+            state.userDecisionCount++;
+            document.getElementById('userDecisions').textContent = state.userDecisionCount;
+            
+            const btn = document.getElementById('focusModeToggle');
+            if (state.focusModeActive) {
+                btn.textContent = 'Deactivate Focus Mode';
+                btn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                btn.classList.add('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                showNotification('You activated Focus Mode', 'user');
+            } else {
+                btn.textContent = 'Activate Focus Mode';
+                btn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                btn.classList.remove('bg-indigo-600', 'text-white', 'hover:bg-indigo-700');
+                showNotification('You deactivated Focus Mode', 'user');
+            }
+        }
+
+        function handleUserBreak() {
+            state.userDecisionCount++;
+            document.getElementById('userDecisions').textContent = state.userDecisionCount;
+            showNotification('You scheduled a 5-minute break', 'user');
+        }
+
+        // Simulate Distraction
+        function simulateDistraction() {
+            state.tabSwitches++;state.focusLevel = Math.max(20, state.focusLevel - 15);
+            
+            document.getElementById('tabSwitches').textContent = state.tabSwitches;
+            updateFocusDisplay();
+            
+            showNotification('⚠️ Distraction detected! Focus level dropped.', 'warning');
+
+            // Agent responds immediately in agent mode
+            if (state.mode === 'agent' && state.focusLevel < 60) {
+                setTimeout(() => {
+                    state.focusLevel = Math.min(85, state.focusLevel + 10);
+                    updateFocusDisplay();
+                    state.focusRecoveries++;
+                    document.getElementById('focusRecoveries').textContent = state.focusRecoveries;
+                    showNotification('✓ Agent recovered focus through adaptive intervention', 'success');
+                }, 1500);
+            }
+        }
+
+        // Handle Answer
+        function handleAnswer(e) {
+            const btn = e.currentTarget;
+            const correct = btn.dataset.correct === 'true';
+            
+            if (correct) {
+                btn.classList.add('bg-green-100', 'border-green-500');
+                state.questionsAnswered++;
+                state.focusLevel = Math.min(100, state.focusLevel + 5);
+                showNotification('✓ Correct! Well done.', 'success');
+                
+                setTimeout(() => {
+                    loadNextQuestion();
+                }, 1000);
+            } else {
+                btn.classList.add('bg-red-100', 'border-red-500');
+                state.focusLevel = Math.max(30, state.focusLevel - 3);
+                showNotification('✗ Incorrect. Try reviewing the material.', 'error');
+            }
+            
+            document.getElementById('questionsAnswered').textContent = `${state.questionsAnswered}/10`;
+            updateFocusDisplay();
+            
+            // Disable all buttons briefly
+            document.querySelectorAll('.answer-btn').forEach(b => b.disabled = true);
+            setTimeout(() => {
+                document.querySelectorAll('.answer-btn').forEach(b => b.disabled = false);
+            }, 1000);
+        }
+
+        // Load Next Question
+        function loadNextQuestion() {
+            const questionPool = questions[state.difficulty];
+            currentQuestionIndex = (currentQuestionIndex + 1) % questionPool.length;
+            const q = questionPool[currentQuestionIndex];
+            
+            document.getElementById('questionText').textContent = 
+                `Question ${state.questionsAnswered + 1}: ${q.question}`;
+            
+            const answerBtns = document.querySelectorAll('.answer-btn');
+            q.answers.forEach((answer, idx) => {
+                answerBtns[idx].textContent = answer.text;
+                answerBtns[idx].dataset.correct = answer.correct;
+                answerBtns[idx].classList.remove('bg-green-100', 'border-green-500', 'bg-red-100', 'border-red-500');
+            });
+        }
+
+        // Update Focus Display
+        function updateFocusDisplay() {
+            state.focusLevel = Math.max(0, Math.min(100, state.focusLevel));
+            focusValue.textContent = `${Math.round(state.focusLevel)}%`;
+            focusMeter.style.width = `${state.focusLevel}%`;
+            
+            // Color coding
+            if (state.focusLevel > 70) {
+                focusMeter.className = 'focus-meter-fill h-full bg-green-500 rounded-full';
+            } else if (state.focusLevel > 50) {
+                focusMeter.className = 'focus-meter-fill h-full bg-yellow-500 rounded-full';
+            } else if (state.focusLevel > 30) {
+                focusMeter.className = 'focus-meter-fill h-full bg-orange-500 rounded-full';
+            } else {
+                focusMeter.className = 'focus-meter-fill h-full bg-red-500 rounded-full';
+            }
+        }
+
+        // Session Timer
+        function startSessionTimer() {
+            setInterval(() => {
+                state.sessionTime++;
+                const mins = Math.floor(state.sessionTime / 60);
+                const secs = state.sessionTime % 60;
+                document.getElementById('sessionTime').textContent = 
+                    `${mins}:${secs.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        // Reset Session
+        function resetSession() {
+            state.focusLevel = 85;
+            state.tabSwitches = 0;
+            state.questionsAnswered = 0;
+            state.focusRecoveries = 0;
+            state.userDecisionCount = 0;
+            state.agentActionCount = 2;
+            
+            updateFocusDisplay();
+            document.getElementById('tabSwitches').textContent = '0';
+            document.getElementById('questionsAnswered').textContent = '0/10';
+            document.getElementById('focusRecoveries').textContent = '0';
+            document.getElementById('userDecisions').textContent = '0';
+            document.getElementById('agentDecisions').textContent = '2';
+            
+            notifications.innerHTML = '';
+            showNotification('Session reset. Starting fresh!', 'success');
+        }
+
+        // Notifications
+        function showNotification(message, type) {
+            const colors = {
+                success: 'bg-green-50 border-green-500 text-green-800',
+                error: 'bg-red-50 border-red-500 text-red-800',
+                warning: 'bg-yellow-50 border-yellow-500 text-yellow-800',
+                agent: 'bg-indigo-50 border-indigo-500 text-indigo-800',
+                user: 'bg-purple-50 border-purple-500 text-purple-800'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = `notification p-4 rounded-lg border-l-4 ${colors[type]} shadow-md`;
+            notification.textContent = message;
+            
+            notifications.insertBefore(notification, notifications.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(-10px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Utility
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
